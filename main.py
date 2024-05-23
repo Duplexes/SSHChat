@@ -3,12 +3,14 @@ import asyncssh
 import sys
 from typing import List, cast
 
+
 class MySSHServer(asyncssh.SSHServer):
     def password_auth_supported(self):
         return True
 
     def validate_password(self, username, password):
         return username == 'public' and password == 'password'
+
 
 class ChatClient:
     _clients: List['ChatClient'] = []
@@ -52,7 +54,7 @@ class ChatClient:
                     await self.handle_command(line)
                 else:
                     self.broadcast(f'{self._name}: {line}\n')
-                    self.write_prompt()  # Show the prompt after broadcasting the message
+                    self.write_prompt()  # Show the prompt after broadcasting the message we hope maybe
         except (asyncssh.BreakReceived, asyncio.CancelledError):
             pass
         finally:
@@ -64,6 +66,12 @@ class ChatClient:
             self.list_users()
         elif command == '/exit':
             await self.exit_chat()
+        elif command == '/help':
+            self.write('Available commands:\n')
+            self.write('  /list - List connected users\n')
+            self.write('  /exit - Exit chat\n')
+            self.write('  /help - Show this help message\n')
+            self.write_prompt()
         else:
             self.write(f'Unknown command: {command}\n')
             self.write_prompt()
@@ -86,11 +94,14 @@ class ChatClient:
         self.write_prompt()
         self._process.stdout.write(current_input)
 
+
 async def start_server() -> None:
+    print('Starting server on port 8022')
     await asyncssh.create_server(
         MySSHServer, '', 8022, server_host_keys=['ssh_host_key'],
         process_factory=ChatClient.handle_client
     )
+
 
 loop = asyncio.get_event_loop()
 
